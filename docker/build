@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+set -e
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+HASH=$(git rev-parse HEAD)
+
+cd ${DIR}/../
+
+rm -rf ${DIR}/nginx/packaged/
+rm -rf ${DIR}/php-fpm/packaged/
+rm -rf ${DIR}/php-cli/packaged/
+rm -rf ${DIR}/config
+
+git archive --format=tar --worktree-attributes ${HASH} | tar -xf -  -C ${DIR}/packaged
+git clone git@github.com:stackkit/config.git ${DIR}/config
+
+cp ${DIR}/config/geencijfer/.env.prd ${DIR}/packaged/.env
+
+cd ${DIR}/packaged
+./develop composer install \
+    --no-ansi \
+    --no-dev \
+    --no-interaction \
+    --no-progress \
+    --no-scripts \
+    --optimize-autoloader
+
+./develop npm install
+./develop npm run production
+
+cp -R ${DIR}/packaged ${DIR}/nginx/packaged/
+cp -R ${DIR}/packaged ${DIR}/php-fpm/packaged/
+cp -R ${DIR}/packaged ${DIR}/php-cli/packaged/
+
+rm -rf ${DIR}/nginx/packaged/node_modules
+rm -rf ${DIR}/php-fpm/packaged/node_modules
+rm -rf ${DIR}/php-cli/packaged/node_modules
+
+docker build --no-cache -t stackkit/gc-nginx:latest ${DIR}/nginx && \
+docker build --no-cache -t stackkit/gc-php-fpm:latest ${DIR}/php-fpm && \
+docker build --no-cache -t stackkit/gc-php-cli:latest ${DIR}/php-cli
+
+docker push stackkit/gc-nginx:latest && \
+docker push stackkit/gc-php-fpm:latest && \
+docker push stackkit/gc-php-cli:latest

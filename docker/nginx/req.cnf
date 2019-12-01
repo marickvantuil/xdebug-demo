@@ -1,0 +1,18 @@
+[req]
+distinguished_name = req_distinguished_name
+x509_extensions = v3_req
+prompt = no
+[req_distinguished_name]
+C = NL
+ST = Utrecht
+L = Utrecht
+O = Buildcode
+OU = Development
+CN = staging.geencijfer.nl
+[v3_req]
+keyUsage = critical, digitalSignature, keyAgreement
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+[alt_names]
+DNS.1 = staging.geencijfer.nl
+DNS.2 = www.staging.geencijfer.nl
